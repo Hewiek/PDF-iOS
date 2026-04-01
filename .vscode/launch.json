@@ -1,0 +1,28 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "启动开发服务器 (Vite)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npm.cmd run dev",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "在 Chrome 中调试",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:51720",
+      "webRoot": "${workspaceFolder}"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Dev + Ref Center",
+      "configurations": [
+        "Axhub Make (Vite)",
+        "Chrome: Ref Center"
+      ]
+    }
+  ]
+}
