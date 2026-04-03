@@ -42,6 +42,34 @@ import {
   Square
 } from 'lucide-react';
 
+const FileIcon = ({ type }: { type: FileItem['type'] }) => {
+  let iconComponent;
+  let bgColor;
+  switch (type) {
+    case 'pdf':
+      iconComponent = <FileText size={20} color="#fff" />;
+      bgColor = '#FF3B30';
+      break;
+    case 'doc':
+      iconComponent = <FileText size={20} color="#fff" />;
+      bgColor = '#2F6BFF';
+      break;
+    case 'xls':
+      iconComponent = <FileSpreadsheet size={20} color="#fff" />;
+      bgColor = '#22C55E';
+      break;
+    default:
+      iconComponent = <FileText size={20} color="#fff" />;
+      bgColor = '#8E8E93';
+  }
+
+  return (
+    <div className="pc-file-icon" style={{ backgroundColor: bgColor }}>
+      {iconComponent}
+    </div>
+  );
+};
+
 type TabKey = 'home' | 'files' | 'recent' | 'tools';
 type ScreenKey = 'settings' | 'language' | 'processing' | 'privacy' | 'feedback' | 'preview';
 
@@ -82,6 +110,61 @@ const DEMO_FILES: FileItem[] = [
   { id: 'f12', name: 'Vendor_List.xls', type: 'xls', time: 'Mar 25', size: '310KB' }
 ];
 
+const usePullRefresh = (onRefresh: () => Promise<void> | void) => {
+  const [state, setState] = useState<'idle' | 'pulling' | 'refreshing'>('idle');
+  const startYRef = useRef<number>(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    // Only trigger pull-to-refresh if at the top of the container
+    if (container.scrollTop <= 0) {
+      startYRef.current = e.touches[0].clientY;
+      setState('pulling');
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (state !== 'pulling' && state !== 'refreshing') return;
+    
+    const currentY = e.touches[0].clientY;
+    const diff = currentY - startYRef.current;
+    
+    if (diff > 0 && state === 'pulling') {
+      e.preventDefault();
+    }
+  }, [state]);
+
+  const handleTouchEnd = useCallback(async () => {
+    if (state !== 'pulling') return;
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    setState('refreshing');
+    
+    try {
+      await onRefresh();
+    } finally {
+      setTimeout(() => {
+        setState('idle');
+      }, 500);
+    }
+  }, [state, onRefresh]);
+
+  return {
+    state,
+    containerRef,
+    eventHandlers: {
+      onTouchStart: handleTouchStart,
+      onTouchMove: handleTouchMove,
+      onTouchEnd: handleTouchEnd
+    }
+  };
+};
+
 const ToolGlyph = ({
   color,
   icon
@@ -92,7 +175,6 @@ const ToolGlyph = ({
   return (
     <div className="pc-glyph" style={{ backgroundColor: color }}>
       <div className="pc-glyph-icon">{icon}</div>
-      <div className="pc-glyph-badge">PDF</div>
     </div>
   );
 };
@@ -252,26 +334,41 @@ const HomeView = ({
   const fileView = viewState[0];
   const setFileView = viewState[1];
 
+  const refreshFiles = useCallback(async () => {
+    // Simulate fetching new data
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    console.log('Files refreshed');
+  }, []);
+
+  const { state: refreshState, containerRef, eventHandlers } = usePullRefresh(refreshFiles);
+
   const tools: ToolItem[] = [
-    { id: 'pdf', title: 'Convert PDF', color: '#0A84FF', icon: <FileText size={18} color="#fff" /> },
-    { id: 'img', title: 'Image to PDF', color: '#7C5CFF', icon: <ImageIcon size={18} color="#fff" /> },
-    { id: 'word', title: 'Word to PDF', color: '#2F6BFF', icon: <FileText size={18} color="#fff" /> },
-    { id: 'excel', title: 'Excel to PDF', color: '#22C55E', icon: <FileSpreadsheet size={18} color="#fff" /> },
-    { id: 'ppt', title: 'PPT to PDF', color: '#FF7A45', icon: <FileText size={18} color="#fff" /> },
-    { id: 'text', title: 'Text to PDF', color: '#3B82F6', icon: <FileText size={18} color="#fff" /> },
-    { id: 'scan', title: 'Scan to PDF', color: '#FF4D4F', icon: <Camera size={18} color="#fff" /> }
+    { id: 'img', title: 'Image to PDF', color: '#7C5CFF', icon: <ImageIcon size={20} color="#fff" /> },
+    { id: 'word', title: 'Word to PDF', color: '#2F6BFF', icon: <span className="pc-tool-letter">W</span> },
+    { id: 'excel', title: 'Excel to PDF', color: '#22C55E', icon: <span className="pc-tool-letter">E</span> },
+    { id: 'ppt', title: 'PPT to PDF', color: '#FF7A45', icon: <span className="pc-tool-letter">P</span> },
+    { id: 'text', title: 'Text to PDF', color: '#3B82F6', icon: <span className="pc-tool-letter pc-tool-letter--sm">TXT</span> },
+    { id: 'url', title: 'URL to PDF', color: '#FF4D4F', icon: <span className="pc-tool-letter pc-tool-letter--sm">URL</span> }
   ];
 
   const files = DEMO_FILES;
 
   return (
-    <div className="pc-page">
-      <div className="pc-top pc-px">
-        <div className="pc-title">Home</div>
-        <button type="button" className="pc-premium" onClick={onPremium}>
-          Premium
-        </button>
+    <div 
+      className={`pc-pull-refresh ${refreshState}`}
+      ref={containerRef}
+      {...eventHandlers}
+    >
+      <div className="pc-pull-refresh-indicator">
+        <div className="pc-pull-refresh-spinner" />
       </div>
+      <div className="pc-page pc-home-page">
+        <div className="pc-top pc-px">
+          <div className="pc-title">Home</div>
+          <button type="button" className="pc-premium" onClick={onPremium}>
+            Premium
+          </button>
+        </div>
 
       <div className="pc-section">
         <div className="pc-section-title pc-px">Recent Tools</div>
@@ -281,13 +378,7 @@ const HomeView = ({
               key={t.id}
               type="button"
               className="pc-tool"
-              onClick={() => {
-                if (t.id === 'pdf') {
-                  onPickPdf();
-                  return;
-                }
-                console.log('Tool', t.id);
-              }}
+              onClick={() => console.log('Tool', t.id)}
             >
               <ToolGlyph color={t.color} icon={t.icon} />
               <div className="pc-tool-name">{t.title}</div>
@@ -325,7 +416,7 @@ const HomeView = ({
                 }}
               >
                 <div className="pc-home-file-thumb">
-                  <div className={`pc-file-type ${f.type}`}>{f.type.toUpperCase()}</div>
+                  <FileIcon type={f.type} />
                 </div>
                 <div className="pc-home-file-main">
                   <div className="pc-home-file-title">{f.name}</div>
@@ -373,7 +464,7 @@ const HomeView = ({
                 }}
               >
                 <div className="pc-file-thumb">
-                  <div className={`pc-file-type ${f.type}`}>{f.type.toUpperCase()}</div>
+                  <FileIcon type={f.type} />
                 </div>
                 <div className="pc-file-name">{f.name}</div>
                 <div className="pc-file-meta">
@@ -403,6 +494,7 @@ const HomeView = ({
         )}
       </div>
     </div>
+  </div>
   );
 };
 
@@ -457,7 +549,9 @@ const FilesView = ({
               }
             }}
           >
-            <div className={`pc-dotfile ${f.type}`}>{f.type.toUpperCase()}</div>
+            <div className="pc-row-thumb">
+              <FileIcon type={f.type} />
+            </div>
             <div className="pc-row-main">
               <div className="pc-row-title">{f.name}</div>
               <div className="pc-row-sub">{f.time}</div>
@@ -520,7 +614,7 @@ const RecentView = ({
               }}
             >
               <div className="pc-home-file-thumb">
-                <div className={`pc-file-type ${f.type}`}>{f.type.toUpperCase()}</div>
+                <FileIcon type={f.type} />
               </div>
               <div className="pc-home-file-main">
                 <div className="pc-home-file-title">{f.name}</div>
@@ -952,12 +1046,34 @@ const PreviewPage = ({
         onPress: () => setConfirm({ format: 'Excel' })
       },
       {
+        id: 'ppt',
+        label: 'Convert to PPT',
+        iconBg: '#FF7A45',
+        icon: <Presentation size={18} color="#fff" />,
+        onPress: () => setConfirm({ format: 'PPT' })
+      },
+      {
         id: 'txt',
         label: 'Convert to TXT',
         iconBg: '#8E8E93',
         icon: <Text size={18} color="#fff" />,
         onPress: () => setConfirm({ format: 'TXT' })
       },
+      {
+        id: 'share',
+        label: 'Share',
+        iconBg: '#007AFF',
+        icon: <Share size={18} color="#fff" />,
+        onPress: onOpenShare
+      },
+      {
+        id: 'delete',
+        label: 'Delete',
+        iconBg: '#FF3B30',
+        icon: <Trash2 size={18} color="#fff" />,
+        onPress: onDelete,
+        destructive: true
+      }
     ];
   }, []);
 
@@ -1017,10 +1133,13 @@ const PreviewPage = ({
     <div className="pc-preview">
       <div className="pc-preview-top">
         <button type="button" className="pc-preview-btn" onClick={onBack} aria-label="Back">
-          <ChevronLeft size={20} />
+          <ChevronLeft size={24} />
         </button>
         <div className="pc-preview-title">Annotation</div>
         <div className="pc-preview-actions">
+          <button type="button" className="pc-preview-btn" aria-label="Undo">
+            <Undo2 size={24} />
+          </button>
           <button
             type="button"
             className="pc-preview-btn"
@@ -1029,7 +1148,7 @@ const PreviewPage = ({
             }}
             aria-label="More"
           >
-            <MoreHorizontal size={20} />
+            <MoreHorizontal size={24} />
           </button>
         </div>
       </div>
@@ -1037,23 +1156,28 @@ const PreviewPage = ({
       {mode === 'annotate' ? (
       <div className="pc-preview-toolbar">
         <button type="button" className="pc-toolbtn active" aria-label="Pen">
-          <Pen size={18} />
+          <Pen size={22} />
         </button>
         <button type="button" className="pc-toolbtn" aria-label="Highlighter">
-          <Highlighter size={18} />
+          <Highlighter size={22} />
         </button>
         <button type="button" className="pc-toolbtn" aria-label="Eraser">
-          <Eraser size={18} />
+          <Eraser size={22} />
         </button>
+        <div className="pc-toolbar-spacer" />
         <button type="button" className="pc-toolbtn" aria-label="Color">
-          <Palette size={18} />
+          <div style={{ width: 20, height: 20, borderRadius: 10, background: '#FF3B30', border: '2px solid #fff', boxShadow: '0 0 0 1px rgba(0,0,0,0.1)' }} />
         </button>
         <div className="pc-toolbar-spacer" />
         <button type="button" className="pc-toolbtn" aria-label="Undo">
-          <Undo2 size={18} />
+          <Undo2 size={22} />
         </button>
         <button type="button" className="pc-toolbtn" aria-label="Redo">
-          <Redo2 size={18} />
+          <Redo2 size={22} />
+        </button>
+        <div className="pc-toolbar-spacer" />
+        <button type="button" className="pc-toolbtn" aria-label="List" onClick={() => setMode('pages')}>
+          <List size={22} />
         </button>
       </div>
       ) : null}
@@ -1066,11 +1190,15 @@ const PreviewPage = ({
                 const checked = selectedPages.includes(p);
                 return (
                   <button key={p} type="button" className="pc-pagecell" onClick={() => togglePage(p)}>
-                    <div className="pc-pagecell-thumb">
+                    <div className={`pc-pagecell-thumb ${checked ? 'active' : ''}`} style={checked ? { borderColor: '#FF3B30', borderWidth: '2px', boxShadow: '0 0 0 2px rgba(255, 59, 48, 0.2)' } : {}}>
                       <div className="pc-pagecell-num">{p}</div>
+                      {checked && (
+                        <div style={{ position: 'absolute', top: 4, right: 4, background: '#FF3B30', borderRadius: 10, width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Check size={12} color="#fff" strokeWidth={3} />
+                        </div>
+                      )}
                     </div>
                     <div className="pc-pagecell-check">
-                      {checked ? <CheckSquare size={18} className="pc-check-on" /> : <Square size={18} className="pc-check-off" />}
                       <span>Page {p}</span>
                     </div>
                   </button>
@@ -1148,12 +1276,13 @@ const PreviewPage = ({
               <button
                 type="button"
                 className="pc-confirm-btn primary"
+                style={{ '--progress': `${((3 - countdown) / 3) * 100}%` } as React.CSSProperties}
                 onClick={() => {
                   if (!confirm) return;
                   doConfirmConvert(confirm.format);
                 }}
               >
-                {countdown > 0 ? `Confirm (${countdown}s)` : 'Confirm'}
+                {countdown > 0 ? `Confirming (${countdown}s)` : 'Confirm'}
               </button>
             </div>
           </div>
@@ -1238,17 +1367,7 @@ const Component = () => {
 
   const sheetItems = useMemo(() => {
     if (!fileAction) return [];
-    const favorited = favorites.includes(fileAction);
     return [
-      {
-        id: 'favorite',
-        label: favorited ? 'Remove Favorite' : 'Add to Favorites',
-        icon: <Star size={20} fill={favorited ? 'currentColor' : 'none'} stroke="currentColor" />,
-        onPress: () => {
-          toggleFavorite(fileAction);
-          setFileAction(null);
-        }
-      },
       {
         id: 'share',
         label: 'Share',
@@ -1268,11 +1387,11 @@ const Component = () => {
         }
       },
       {
-        id: 'info',
-        label: 'Get Info',
-        icon: <Info size={20} />,
+        id: 'favorite',
+        label: isFavorited(fileAction) ? 'Remove from Favorites' : 'Add to Favorites',
+        icon: <Star size={20} />,
         onPress: () => {
-          console.log('Info', fileAction);
+          toggleFavorite(fileAction);
           setFileAction(null);
         }
       },
@@ -1287,7 +1406,7 @@ const Component = () => {
         }
       }
     ];
-  }, [favorites, fileAction]);
+  }, [favorites, fileAction, isFavorited, toggleFavorite]);
 
   const addItems = useMemo(() => {
     return [

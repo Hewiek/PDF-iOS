@@ -1,0 +1,48 @@
+{
+  "meta": {
+    "version": 1,
+    "counters": {
+      "userId": 0,
+      "apiKeyId": 0,
+      "credentialId": 0,
+      "allowedUserId": 0
+    }
+  },
+  "users": [],
+  "apiKeys": [],
+  "credentials": [],
+  "channelPlugins": [
+    {
+      "id": "lark_default",
+      "type": "lark",
+      "enabled": false,
+      "status": "stopped",
+      "config": {
+        "appId": "",
+        "appSecret": "",
+        "encryptKey": "",
+        "verificationToken": "",
+        "defaultBackend": "codex",
+        "defaultModel": "",
+        "defaultProjectPath": ""
+      },
+      "updated_at": "2026-04-03T09:34:41.793Z"
+    },
+    {
+      "id": "dingtalk_default",
+      "type": "dingtalk",
+      "enabled": false,
+      "status": "stopped",
+      "config": {
+        "clientId": "",
+        "clientSecret": "",
+        "defaultBackend": "codex",
+        "defaultModel": "",
+        "defaultProjectPath": ""
+      },
+      "updated_at": "2026-04-03T09:34:41.796Z"
+    }
+  ],
+  "channelAllowedUsers": [],
+  "channelSessions": []
+}

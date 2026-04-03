@@ -965,7 +965,10 @@ async function verifyAssistantHealthEndpoint(): Promise<{ ok: boolean; message: 
   const healthUrl = DEFAULT_ASSISTANT_HEALTH_URL;
 
   try {
-    const response = await fetch(healthUrl, { method: 'GET' });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1200);
+    const response = await fetch(healthUrl, { method: 'GET', signal: controller.signal });
+    clearTimeout(timeoutId);
     if (!response.ok) {
       return { ok: false, message: `/health 探测失败: status ${response.status}` };
     }
@@ -994,7 +997,8 @@ async function verifyAssistantHealthEndpoint(): Promise<{ ok: boolean; message: 
 
     return { ok: true, message: 'Axhub Genie 健康检查通过' };
   } catch (error: any) {
-    return { ok: false, message: `健康检查请求失败: ${error?.message || 'unknown error'}` };
+    const isAbort = error?.name === 'AbortError' || String(error?.message || '').toLowerCase().includes('aborted');
+    return { ok: false, message: isAbort ? '健康检查请求超时' : `健康检查请求失败: ${error?.message || 'unknown error'}` };
   }
 }
 

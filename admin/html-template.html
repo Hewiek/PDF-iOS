@@ -4,13 +4,17 @@
 <head>
   <meta charset="utf-8">
   <title>{{TITLE}}</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="format-detection" content="telephone=no">
   <style>
     /* 全局样式 */
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
     }
 
     html,
@@ -19,6 +23,14 @@
       height: auto;
       overflow-x: hidden;
       overflow-y: auto;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, 'Apple Color Emoji',
+        'Segoe UI Emoji';
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background: #ffffff;
+      user-select: none;
     }
 
     #root {
@@ -26,6 +38,23 @@
       margin-left: auto;
       margin-right: auto;
       overflow: visible;
+      min-height: 100dvh;
+    }
+
+    @media (min-width: 768px) {
+      body.is-standalone #root {
+        max-width: 430px;
+      }
+    }
+
+    button,
+    a {
+      touch-action: manipulation;
+    }
+
+    input,
+    textarea {
+      user-select: text;
     }
 
     /* 如果是元素演示页面（可能被内嵌到 iframe），设置固定尺寸 */
@@ -54,15 +83,18 @@
   <script>
     // 判断是否为元素演示页面（在 body 加载后执行）
     (function () {
-      if (document.body && window.location.pathname.includes('/elements/')) {
-        document.body.classList.add('is-element-page');
-      } else if (!document.body) {
-        // 如果 body 还没加载，等待 DOMContentLoaded
-        document.addEventListener('DOMContentLoaded', function () {
-          if (window.location.pathname.includes('/elements/')) {
-            document.body.classList.add('is-element-page');
-          }
-        });
+      function applyBodyFlags() {
+        const standalone = window.top === window.self;
+        document.body.classList.add(standalone ? 'is-standalone' : 'is-embedded');
+        if (window.location.pathname.includes('/elements/')) {
+          document.body.classList.add('is-element-page');
+        }
+      }
+
+      if (document.body) {
+        applyBodyFlags();
+      } else {
+        document.addEventListener('DOMContentLoaded', applyBodyFlags);
       }
     })();
   </script>
