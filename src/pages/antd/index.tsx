@@ -22,23 +22,16 @@ import {
   Tag,
   Button,
   Space,
-  List,
-  Avatar,
   Typography,
-  Badge,
   DatePicker,
   theme,
-  Divider,
-  Tabs
 } from 'antd';
 import {
   ArrowUpOutlined,
   ArrowDownOutlined,
   ShoppingOutlined,
   UserOutlined,
-  MoneyCollectOutlined,
   ShoppingCartOutlined,
-  EllipsisOutlined,
   ReloadOutlined
 } from '@ant-design/icons';
 
@@ -316,11 +309,11 @@ const Component = forwardRef<AxureHandle, AxureProps>(function EcommerceDashboar
 
   const getStatusTag = useCallback((status: string) => {
     switch (status) {
-      case 'completed': return <Tag color="success" bordered={false}>已完成</Tag>;
-      case 'processing': return <Tag color="processing" bordered={false}>处理中</Tag>;
-      case 'pending': return <Tag color="warning" bordered={false}>待支付</Tag>;
-      case 'rejected': return <Tag color="error" bordered={false}>已取消</Tag>;
-      default: return <Tag bordered={false}>未知</Tag>;
+      case 'completed': return <Tag color="success" variant="filled">已完成</Tag>;
+      case 'processing': return <Tag color="processing" variant="filled">处理中</Tag>;
+      case 'pending': return <Tag color="warning" variant="filled">待支付</Tag>;
+      case 'rejected': return <Tag color="error" variant="filled">已取消</Tag>;
+      default: return <Tag variant="filled">未知</Tag>;
     }
   }, []);
 
@@ -376,12 +369,12 @@ const Component = forwardRef<AxureHandle, AxureProps>(function EcommerceDashboar
           {/* Metrics Section */}
           <Row gutter={[20, 20]} className="metric-cards">
             <Col xs={24} sm={12} lg={6}>
-              <Card bordered={false} bodyStyle={{ padding: '20px 24px' }}>
+              <Card variant="borderless" styles={{ body: { padding: '20px 24px' } }}>
                 <Statistic
                   title="总销售额"
                   value={126560}
                   precision={2}
-                  valueStyle={{ color: '#1e293b', fontSize: 24, fontWeight: 'bold' }}
+                  styles={{ content: { color: '#1e293b', fontSize: 24, fontWeight: 'bold' } }}
                   prefix={<span style={{ fontSize: 18, color: '#94a3b8', marginRight: 4 }}>¥</span>}
                 />
                 <div className="metric-footer">
@@ -394,11 +387,11 @@ const Component = forwardRef<AxureHandle, AxureProps>(function EcommerceDashboar
               </Card>
             </Col>
             <Col xs={24} sm={12} lg={6}>
-              <Card bordered={false} bodyStyle={{ padding: '20px 24px' }}>
+              <Card variant="borderless" styles={{ body: { padding: '20px 24px' } }}>
                 <Statistic
                   title="访问用户"
                   value={8846}
-                  valueStyle={{ color: '#1e293b', fontSize: 24, fontWeight: 'bold' }}
+                  styles={{ content: { color: '#1e293b', fontSize: 24, fontWeight: 'bold' } }}
                   prefix={<UserOutlined style={{ fontSize: 18, color: '#3b82f6', marginRight: 8 }} />}
                 />
                 <div className="metric-footer">
@@ -411,11 +404,11 @@ const Component = forwardRef<AxureHandle, AxureProps>(function EcommerceDashboar
               </Card>
             </Col>
             <Col xs={24} sm={12} lg={6}>
-              <Card bordered={false} bodyStyle={{ padding: '20px 24px' }}>
+              <Card variant="borderless" styles={{ body: { padding: '20px 24px' } }}>
                 <Statistic
                   title="支付订单"
                   value={6560}
-                  valueStyle={{ color: '#1e293b', fontSize: 24, fontWeight: 'bold' }}
+                  styles={{ content: { color: '#1e293b', fontSize: 24, fontWeight: 'bold' } }}
                   prefix={<ShoppingCartOutlined style={{ fontSize: 18, color: '#8b5cf6', marginRight: 8 }} />}
                 />
                 <div className="metric-footer">
@@ -428,12 +421,12 @@ const Component = forwardRef<AxureHandle, AxureProps>(function EcommerceDashboar
               </Card>
             </Col>
             <Col xs={24} sm={12} lg={6}>
-              <Card bordered={false} bodyStyle={{ padding: '20px 24px' }}>
+              <Card variant="borderless" styles={{ body: { padding: '20px 24px' } }}>
                 <Statistic
                   title="转化率"
                   value={12.5}
                   precision={1}
-                  valueStyle={{ color: '#1e293b', fontSize: 24, fontWeight: 'bold' }}
+                  styles={{ content: { color: '#1e293b', fontSize: 24, fontWeight: 'bold' } }}
                   suffix="%"
                   prefix={<ShoppingOutlined style={{ fontSize: 18, color: '#ec4899', marginRight: 8 }} />}
                 />
@@ -453,12 +446,12 @@ const Component = forwardRef<AxureHandle, AxureProps>(function EcommerceDashboar
             <Col xs={24} lg={16}>
               <Card 
                 title={<span style={{ fontWeight: 600 }}>销售趋势</span>} 
-                bordered={false}
+                variant="borderless"
                 extra={
                   <Space>
-                    <Tag color="blue" bordered={false}>本周</Tag>
-                    <Tag bordered={false}>本月</Tag>
-                    <Tag bordered={false}>全年</Tag>
+                    <Tag color="blue" variant="filled">本周</Tag>
+                    <Tag variant="filled">本月</Tag>
+                    <Tag variant="filled">全年</Tag>
                   </Space>
                 }
                 style={{ height: '100%' }} // Full height
@@ -467,7 +460,7 @@ const Component = forwardRef<AxureHandle, AxureProps>(function EcommerceDashboar
               </Card>
             </Col>
             <Col xs={24} lg={8}>
-              <Card title={<span style={{ fontWeight: 600 }}>销售品类占比</span>} bordered={false} style={{ height: '100%' }}>
+              <Card title={<span style={{ fontWeight: 600 }}>销售品类占比</span>} variant="borderless" style={{ height: '100%' }}>
                 <CategoryPieChart />
               </Card>
             </Col>
@@ -478,10 +471,10 @@ const Component = forwardRef<AxureHandle, AxureProps>(function EcommerceDashboar
             <Col xs={24} lg={16} style={{ display: 'flex' }}>
               <Card 
                 title={<span style={{ fontWeight: 600 }}>最近订单</span>} 
-                bordered={false}
+                variant="borderless"
                 extra={<Button type="link">查看全部</Button>}
                 style={{ width: '100%', display: 'flex', flexDirection: 'column' }} // Flex column layout
-                bodyStyle={{ flex: 1, padding: 24, overflow: 'hidden' }} // Restored padding, flex grow
+                styles={{ body: { flex: 1, padding: 24, overflow: 'hidden' } }} // Restored padding, flex grow
               >
                 <Table
                   columns={columns}
@@ -496,46 +489,45 @@ const Component = forwardRef<AxureHandle, AxureProps>(function EcommerceDashboar
             <Col xs={24} lg={8} style={{ display: 'flex' }}>
               <Card 
                 title={<span style={{ fontWeight: 600 }}>热销商品 Top 7</span>} 
-                bordered={false}
+                variant="borderless"
                 style={{ width: '100%', display: 'flex', flexDirection: 'column' }}
-                bodyStyle={{ flex: 1, padding: '12px 24px' }}
+                styles={{ body: { flex: 1, padding: '12px 24px' } }}
               >
-                <List
-                  itemLayout="horizontal"
-                  dataSource={products}
-                  split={false}
-                  renderItem={(item: any, index) => (
-                    <List.Item style={{ padding: '10px 0' }}>
-                      <List.Item.Meta
-                        avatar={
-                          <div style={{ 
-                            width: 24, 
-                            height: 24, 
-                            borderRadius: '50%', 
-                            background: index < 3 ? '#3b82f6' : '#f1f5f9',
-                            color: index < 3 ? '#fff' : '#64748b',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontWeight: 'bold',
-                            fontSize: 12
-                          }}>
-                            {index + 1}
-                          </div>
-                        }
-                        title={<Text style={{ fontSize: 14 }}>{item.name}</Text>}
-                        description={
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-                            <Text type="secondary" style={{ fontSize: 12 }}>销量: {item.sales}</Text>
-                            <Text type={item.growth > 0 ? 'success' : 'danger'} style={{ fontSize: 12 }}>
-                              {item.growth > 0 ? '+' : ''}{item.growth}%
-                            </Text>
-                          </div>
-                        }
-                      />
-                    </List.Item>
-                  )}
-                />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {products.map((item: any, index: number) => (
+                    <div key={item.id ?? `${item.name}-${index}`} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0' }}>
+                      <div
+                        style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: '50%',
+                          background: index < 3 ? '#3b82f6' : '#f1f5f9',
+                          color: index < 3 ? '#fff' : '#64748b',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 'bold',
+                          fontSize: 12,
+                          flexShrink: 0
+                        }}
+                      >
+                        {index + 1}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={{ fontSize: 14 }}>{item.name}</Text>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            销量: {item.sales}
+                          </Text>
+                          <Text type={item.growth > 0 ? 'success' : 'danger'} style={{ fontSize: 12 }}>
+                            {item.growth > 0 ? '+' : ''}
+                            {item.growth}%
+                          </Text>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </Card>
             </Col>
           </Row>

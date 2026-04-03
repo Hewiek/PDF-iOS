@@ -44,10 +44,33 @@ import process from 'node:process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import * as http from 'node:http'
+import * as https from 'node:https'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const APP_ROOT = path.resolve(__dirname, '..')
+
+function resolveCliCommand(command) {
+  return command
+}
+
+function quoteCmdArg(arg) {
+  if (arg === '') return '""'
+  if (!/[ \t&|<>^"]/g.test(arg)) return arg
+  return `"${arg.replace(/"/g, '""')}"`
+}
+
+function spawnCli(command, args, options) {
+  const resolvedCommand = resolveCliCommand(command)
+  if (process.platform !== 'win32') {
+    return spawn(resolvedCommand, args, options)
+  }
+
+  const cmdExe = process.env.ComSpec || 'cmd.exe'
+  const cmdline = [resolvedCommand, ...args].map(quoteCmdArg).join(' ')
+  return spawn(cmdExe, ['/d', '/s', '/c', cmdline], options)
+}
 
 /* ================= 配置 ================= */
 // 解析命令行参数
@@ -68,7 +91,51 @@ const CONFIG = {
 /* ================= 工具函数 ================= */
 function jsonExit(payload, code = 0) {
   process.stdout.write(JSON.stringify(payload, null, 2))
-  process.exit(code)
+  process.exitCode = code
+}
+
+const httpAgent = new http.Agent({ keepAlive: false })
+const httpsAgent = new https.Agent({ keepAlive: false })
+
+async function getText(url) {
+  return new Promise((resolve, reject) => {
+    try {
+      const parsed = new URL(url)
+      const isHttps = parsed.protocol === 'https:'
+      const lib = isHttps ? https : http
+      const agent = isHttps ? httpsAgent : httpAgent
+
+      const req = lib.request(
+        {
+          protocol: parsed.protocol,
+          hostname: parsed.hostname,
+          port: parsed.port,
+          path: `${parsed.pathname}${parsed.search}`,
+          method: 'GET',
+          agent
+        },
+        (res) => {
+          res.setEncoding('utf8')
+          let data = ''
+          res.on('data', (chunk) => {
+            data += chunk
+          })
+          res.on('end', () => {
+            resolve({
+              ok: (res.statusCode || 0) >= 200 && (res.statusCode || 0) < 400,
+              status: res.statusCode || 0,
+              text: data
+            })
+          })
+        }
+      )
+
+      req.on('error', reject)
+      req.end()
+    } catch (e) {
+      reject(e)
+    }
+  })
 }
 
 /**
@@ -76,8 +143,8 @@ function jsonExit(payload, code = 0) {
  */
 async function checkPageForErrors(url) {
   try {
-    const res = await fetch(url, { method: 'GET' })
-    const text = await res.text()
+    const res = await getText(url)
+    const text = res.text
     
     // 尝试从 Vite 错误页面中提取错误对象
     const errorMatch = text.match(/const\s+error\s*=\s*({[\s\S]*?})\s*\n\s*try/);
@@ -114,9 +181,12 @@ async function checkPageForErrors(url) {
     
     // 备用方案：检查页面内容中是否包含错误关键词
     const errorPatterns = [
-      /ERROR:\s*([^\n]+)/i,
       /SyntaxError:\s*([^\n]+)/i,
-      /Transform failed/i
+      /Transform failed/i,
+      /Internal Server Error/i,
+      /Failed to resolve import/i,
+      /Cannot find module/i,
+      /Module not found/i
     ]
     
     const foundErrors = []
@@ -136,7 +206,7 @@ async function checkPageForErrors(url) {
 
 async function isServerAlive(url) {
   try {
-    const res = await fetch(url, { method: 'GET' })
+    const res = await getText(url)
     return res.ok
   } catch {
     return false
@@ -409,11 +479,28 @@ function toCheckItem(name, result) {
 }
 
 function buildChecksSummary({ lintResult, typeCheckResult, buildResult }) {
+  const normalizedLint = normalizeCheckResult(lintResult)
+  const normalizedTypecheck = normalizeCheckResult(typeCheckResult)
+  const normalizedBuild = normalizeCheckResult(buildResult)
+
   return [
-    toCheckItem('lint', lintResult),
-    toCheckItem('typecheck', typeCheckResult),
-    toCheckItem('build', buildResult)
+    toCheckItem('lint', normalizedLint),
+    toCheckItem('typecheck', normalizedTypecheck),
+    toCheckItem('build', normalizedBuild)
   ].filter(Boolean)
+}
+
+function normalizeCheckResult(result) {
+  if (!result) return result
+  const inferredStatus =
+    result.status ??
+    (typeof result.message === 'string' && /completed successfully/i.test(result.message) ? 'SUCCESS' : undefined)
+  return {
+    status: inferredStatus,
+    message: result.message,
+    errors: result.errors || [],
+    logs: result.logs || []
+  }
 }
 
 async function runCommandCheck({ label, command, args = [], env = {}, logTag }) {
@@ -423,7 +510,7 @@ async function runCommandCheck({ label, command, args = [], env = {}, logTag }) 
     const checkErrors = []
     const checkLogs = []
 
-    const proc = spawn(command, args, {
+    const proc = spawnCli(command, args, {
       cwd: APP_ROOT,
       env: { ...process.env, ...env },
       stdio: ['ignore', 'pipe', 'pipe']
@@ -501,8 +588,8 @@ async function runLintCheck() {
 
   return runCommandCheck({
     label: 'Lint',
-    command: 'npx',
-    args: ['eslint', '.'],
+    command: 'npm',
+    args: ['exec', '--', 'eslint', '.'],
     logTag: 'LINT'
   })
 }
@@ -531,8 +618,8 @@ async function runTypeCheck() {
 
   return runCommandCheck({
     label: 'Typecheck',
-    command: 'npx',
-    args: ['tsc', '--noEmit'],
+    command: 'npm',
+    args: ['exec', '--', 'tsc', '--noEmit'],
     logTag: 'TYPECHECK'
   })
 }
@@ -600,7 +687,7 @@ async function runBuildCheck(entryKey) {
     const buildLogs = []
     
     // 使用 ENTRY_KEY 环境变量触发单独构建
-    const buildProcess = spawn('npx', ['vite', 'build'], {
+    const buildProcess = spawnCli('npm', ['exec', '--', 'vite', 'build'], {
       cwd: APP_ROOT,
       env: { ...process.env, ENTRY_KEY: entryKey },
       stdio: ['ignore', 'pipe', 'pipe']
@@ -745,7 +832,7 @@ async function continueWithServerInfo(serverInfo, pageUrl, viteProcess) {
         url: pageUrl,
         errors: lintResult.errors,
         logs,
-        lintCheck: lintResult,
+        lintCheck: normalizeCheckResult(lintResult),
         checks: buildChecksSummary({ lintResult })
       }, serverInfo), 1)
     }
@@ -760,8 +847,8 @@ async function continueWithServerInfo(serverInfo, pageUrl, viteProcess) {
         url: pageUrl,
         errors: typeCheckResult.errors,
         logs,
-        lintCheck: lintResult,
-        typeCheck: typeCheckResult,
+        lintCheck: normalizeCheckResult(lintResult),
+        typeCheck: normalizeCheckResult(typeCheckResult),
         checks: buildChecksSummary({ lintResult, typeCheckResult })
       }, serverInfo), 1)
     }
@@ -782,9 +869,9 @@ async function continueWithServerInfo(serverInfo, pageUrl, viteProcess) {
           url: pageUrl,
           errors: buildResult.errors,
           logs,
-          buildCheck: buildResult,
-          lintCheck: lintResult,
-          typeCheck: typeCheckResult,
+          buildCheck: normalizeCheckResult(buildResult),
+          lintCheck: normalizeCheckResult(lintResult),
+          typeCheck: normalizeCheckResult(typeCheckResult),
           checks: buildChecksSummary({ lintResult, typeCheckResult, buildResult })
         }, serverInfo), 1)
       }
@@ -823,9 +910,9 @@ async function continueWithServerInfo(serverInfo, pageUrl, viteProcess) {
         url: pageUrl,
         errors,
         logs,
-        buildCheck: buildResult,
-        lintCheck: lintResult,
-        typeCheck: typeCheckResult,
+        buildCheck: normalizeCheckResult(buildResult),
+        lintCheck: normalizeCheckResult(lintResult),
+        typeCheck: normalizeCheckResult(typeCheckResult),
         checks: buildChecksSummary({ lintResult, typeCheckResult, buildResult })
       }, serverInfo), 1)
     }
@@ -839,9 +926,9 @@ async function continueWithServerInfo(serverInfo, pageUrl, viteProcess) {
     // 添加构建结果到最终输出
     const finalResult = {
       ...result,
-      buildCheck: buildResult,
-      lintCheck: lintResult,
-      typeCheck: typeCheckResult,
+      buildCheck: normalizeCheckResult(buildResult),
+      lintCheck: normalizeCheckResult(lintResult),
+      typeCheck: normalizeCheckResult(typeCheckResult),
       checks: buildChecksSummary({ lintResult, typeCheckResult, buildResult })
     }
     

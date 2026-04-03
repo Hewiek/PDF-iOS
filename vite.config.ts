@@ -80,7 +80,10 @@ function lanAccessControlPlugin(): Plugin {
         try {
           const axhubConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
           allowLAN = axhubConfig.server?.allowLAN !== false;
-          console.log(`🔒 局域网访问控制: ${allowLAN ? '允许' : '禁止'}`);
+          const shouldLog = !process.env.VITEST && process.env.NODE_ENV !== 'test';
+          if (shouldLog) {
+            console.log(`[LAN Access] ${allowLAN ? 'ALLOW' : 'BLOCK'}`);
+          }
         } catch (e) {
           // 配置读取失败，使用默认值
         }

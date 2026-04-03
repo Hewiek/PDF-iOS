@@ -1,5 +1,5 @@
 import './style.css';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Home,
   Files,
@@ -28,11 +28,22 @@ import {
   FileText,
   FileSpreadsheet,
   Image as ImageIcon,
-  Camera
+  Camera,
+  Pen,
+  Highlighter,
+  Eraser,
+  Undo2,
+  Redo2,
+  Palette,
+  Presentation,
+  Text,
+  Star,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 
 type TabKey = 'home' | 'files' | 'recent' | 'tools';
-type ScreenKey = 'settings' | 'language' | 'processing' | 'privacy' | 'feedback';
+type ScreenKey = 'settings' | 'language' | 'processing' | 'privacy' | 'feedback' | 'preview';
 
 type FileItem = {
   id: string;
@@ -49,6 +60,27 @@ type ToolItem = {
   color: string;
   icon: React.ReactNode;
 };
+
+type PreviewFile = {
+  name: string;
+  type: FileItem['type'];
+  objectUrl?: string;
+};
+
+const DEMO_FILES: FileItem[] = [
+  { id: 'f1', name: 'Q3_Financial_Report_Final_v2.pdf', type: 'pdf', time: '10:34 AM', size: '1.2MB' },
+  { id: 'f2', name: 'Marketing_Strategy_2026.doc', type: 'doc', time: '10:34 AM', size: '860KB' },
+  { id: 'f3', name: 'Employee_Onboarding_Handbook.pdf', type: 'pdf', time: '10:34 AM', size: '2.1MB' },
+  { id: 'f4', name: 'Invoice_002931.xls', type: 'xls', time: '10:34 AM', size: '450KB' },
+  { id: 'f5', name: 'Product_Design_Specs.doc', type: 'doc', time: '10:34 AM', size: '720KB' },
+  { id: 'f6', name: 'Meeting_Notes_Mar_29.pdf', type: 'pdf', time: '10:34 AM', size: '510KB' },
+  { id: 'f7', name: 'Annual_Budget_2026.xlsx', type: 'xls', time: 'Yesterday', size: '1.5MB' },
+  { id: 'f8', name: 'Client_Contract_Signed.pdf', type: 'pdf', time: 'Yesterday', size: '3.4MB' },
+  { id: 'f9', name: 'Project_Timeline.doc', type: 'doc', time: 'Mar 30', size: '420KB' },
+  { id: 'f10', name: 'Design_Assets.pdf', type: 'pdf', time: 'Mar 29', size: '5.6MB' },
+  { id: 'f11', name: 'Q2_Performance_Review.pdf', type: 'pdf', time: 'Mar 28', size: '1.8MB' },
+  { id: 'f12', name: 'Vendor_List.xls', type: 'xls', time: 'Mar 25', size: '310KB' }
+];
 
 const ToolGlyph = ({
   color,
@@ -204,15 +236,24 @@ const Paywall = ({
 };
 
 const HomeView = ({
-  onPremium
+  onPremium,
+  onOpenFile,
+  onMore,
+  onPickPdf,
+  isFavorited
 }: {
   onPremium: () => void;
+  onOpenFile: (file: { name: string; type: FileItem['type'] }) => void;
+  onMore: (fileName: string) => void;
+  onPickPdf: () => void;
+  isFavorited: (fileName: string) => boolean;
 }) => {
   const viewState = useState<'list' | 'grid'>('list');
   const fileView = viewState[0];
   const setFileView = viewState[1];
 
   const tools: ToolItem[] = [
+    { id: 'pdf', title: 'Convert PDF', color: '#0A84FF', icon: <FileText size={18} color="#fff" /> },
     { id: 'img', title: 'Image to PDF', color: '#7C5CFF', icon: <ImageIcon size={18} color="#fff" /> },
     { id: 'word', title: 'Word to PDF', color: '#2F6BFF', icon: <FileText size={18} color="#fff" /> },
     { id: 'excel', title: 'Excel to PDF', color: '#22C55E', icon: <FileSpreadsheet size={18} color="#fff" /> },
@@ -221,18 +262,11 @@ const HomeView = ({
     { id: 'scan', title: 'Scan to PDF', color: '#FF4D4F', icon: <Camera size={18} color="#fff" /> }
   ];
 
-  const files: FileItem[] = [
-    { id: 'f1', name: 'File name File name File...', type: 'pdf', time: '10:34 AM', size: '1.2MB' },
-    { id: 'f2', name: 'File name File name File...', type: 'doc', time: '10:34 AM', size: '860KB' },
-    { id: 'f3', name: 'File name File name File...', type: 'xls', time: '10:34 AM', size: '450KB' },
-    { id: 'f4', name: 'File name File name File...', type: 'pdf', time: '10:34 AM', size: '2.1MB' },
-    { id: 'f5', name: 'File name File name File...', type: 'doc', time: '10:34 AM', size: '720KB' },
-    { id: 'f6', name: 'File name File name File...', type: 'xls', time: '10:34 AM', size: '510KB' }
-  ];
+  const files = DEMO_FILES;
 
   return (
     <div className="pc-page">
-      <div className="pc-top">
+      <div className="pc-top pc-px">
         <div className="pc-title">Home</div>
         <button type="button" className="pc-premium" onClick={onPremium}>
           Premium
@@ -240,10 +274,21 @@ const HomeView = ({
       </div>
 
       <div className="pc-section">
-        <div className="pc-section-title">Recent Tools</div>
-        <div className="pc-tools">
+        <div className="pc-section-title pc-px">Recent Tools</div>
+        <div className="pc-tools pc-px">
           {tools.map((t) => (
-            <button key={t.id} type="button" className="pc-tool">
+            <button
+              key={t.id}
+              type="button"
+              className="pc-tool"
+              onClick={() => {
+                if (t.id === 'pdf') {
+                  onPickPdf();
+                  return;
+                }
+                console.log('Tool', t.id);
+              }}
+            >
               <ToolGlyph color={t.color} icon={t.icon} />
               <div className="pc-tool-name">{t.title}</div>
             </button>
@@ -252,7 +297,7 @@ const HomeView = ({
       </div>
 
       <div className="pc-section">
-        <div className="pc-section-row">
+        <div className="pc-section-row pc-px">
           <div className="pc-section-title">Recent files</div>
           <button
             type="button"
@@ -266,7 +311,19 @@ const HomeView = ({
         {fileView === 'list' ? (
           <div className="pc-home-files-list">
             {files.map((f) => (
-              <div key={f.id} className="pc-home-file-row">
+              <div
+                key={f.id}
+                className="pc-home-file-row"
+                onClick={() => onOpenFile({ name: f.name, type: f.type })}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onOpenFile({ name: f.name, type: f.type });
+                  }
+                }}
+              >
                 <div className="pc-home-file-thumb">
                   <div className={`pc-file-type ${f.type}`}>{f.type.toUpperCase()}</div>
                 </div>
@@ -279,8 +336,22 @@ const HomeView = ({
                   </div>
                 </div>
                 <div className="pc-home-file-right">
-                  <span className="pc-star">★</span>
-                  <span className="pc-more">⋯</span>
+                  {isFavorited(f.name) ? (
+                    <span className="pc-star" aria-label="Favorited">
+                      <Star size={16} fill="currentColor" stroke="currentColor" />
+                    </span>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="pc-more-btn pc-more-btn--inline"
+                    aria-label="More actions"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onMore(f.name);
+                    }}
+                  >
+                    <MoreHorizontal size={18} />
+                  </button>
                 </div>
               </div>
             ))}
@@ -288,7 +359,19 @@ const HomeView = ({
         ) : (
           <div className="pc-files-grid">
             {files.map((f) => (
-              <div key={f.id} className="pc-file-card">
+              <div
+                key={f.id}
+                className="pc-file-card"
+                onClick={() => onOpenFile({ name: f.name, type: f.type })}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onOpenFile({ name: f.name, type: f.type });
+                  }
+                }}
+              >
                 <div className="pc-file-thumb">
                   <div className={`pc-file-type ${f.type}`}>{f.type.toUpperCase()}</div>
                 </div>
@@ -296,8 +379,22 @@ const HomeView = ({
                 <div className="pc-file-meta">
                   <div className="pc-file-time">{f.time}</div>
                   <div className="pc-file-actions">
-                    <span className="pc-star">★</span>
-                    <span className="pc-more">⋯</span>
+                    {isFavorited(f.name) ? (
+                      <span className="pc-star" aria-label="Favorited">
+                        <Star size={16} fill="currentColor" stroke="currentColor" />
+                      </span>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="pc-more-btn pc-more-btn--inline"
+                      aria-label="More actions"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onMore(f.name);
+                      }}
+                    >
+                      <MoreHorizontal size={18} />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -310,20 +407,19 @@ const HomeView = ({
 };
 
 const FilesView = ({
-  onMore
+  onMore,
+  onOpenFile,
+  isFavorited
 }: {
   onMore: (fileName: string) => void;
+  onOpenFile: (file: { name: string; type: FileItem['type'] }) => void;
+  isFavorited: (fileName: string) => boolean;
 }) => {
   const queryState = useState('');
   const query = queryState[0];
   const setQuery = queryState[1];
 
-  const files: FileItem[] = [
-    { id: 'a', name: 'Contract_Signed.pdf', type: 'pdf', time: '1.2MB' },
-    { id: 'b', name: 'Expenses_2026.xlsx', type: 'xls', time: '450KB' },
-    { id: 'c', name: 'Resume_Updated.doc', type: 'doc', time: '89KB' },
-    { id: 'd', name: 'Invoice_00021.pdf', type: 'pdf', time: '620KB' }
-  ];
+  const files = DEMO_FILES;
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -333,7 +429,7 @@ const FilesView = ({
 
   return (
     <div className="pc-page">
-      <div className="pc-top pc-top-compact">
+      <div className="pc-top pc-top-compact pc-px">
         <div className="pc-title">Files</div>
       </div>
 
@@ -348,17 +444,37 @@ const FilesView = ({
 
       <div className="pc-list">
         {filtered.map((f) => (
-          <div key={f.id} className="pc-row">
+          <div
+            key={f.id}
+            className="pc-row"
+            role="button"
+            tabIndex={0}
+            onClick={() => onOpenFile({ name: f.name, type: f.type })}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onOpenFile({ name: f.name, type: f.type });
+              }
+            }}
+          >
             <div className={`pc-dotfile ${f.type}`}>{f.type.toUpperCase()}</div>
             <div className="pc-row-main">
               <div className="pc-row-title">{f.name}</div>
               <div className="pc-row-sub">{f.time}</div>
             </div>
+            {isFavorited(f.name) ? (
+              <span className="pc-star" aria-label="Favorited">
+                <Star size={16} fill="currentColor" stroke="currentColor" />
+              </span>
+            ) : null}
             <button
               type="button"
               className="pc-more-btn"
               aria-label="More actions"
-              onClick={() => onMore(f.name)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onMore(f.name);
+              }}
             >
               <MoreHorizontal size={18} />
             </button>
@@ -369,24 +485,40 @@ const FilesView = ({
   );
 };
 
-const RecentView = () => {
+const RecentView = ({
+  onOpenFile,
+  onMore,
+  isFavorited
+}: {
+  onOpenFile: (file: { name: string; type: FileItem['type'] }) => void;
+  onMore: (fileName: string) => void;
+  isFavorited: (fileName: string) => boolean;
+}) => {
+  const files = DEMO_FILES;
   return (
     <div className="pc-page">
-      <div className="pc-top pc-top-compact">
+      <div className="pc-top pc-top-compact pc-px">
         <div className="pc-title">Recent</div>
       </div>
       <div className="pc-section">
-        <div className="pc-section-row">
+        <div className="pc-section-row pc-px">
           <div className="pc-section-title">Recent files</div>
         </div>
         <div className="pc-home-files-list">
-          {[
-            { id: 'rf1', name: 'Invoice_00021.pdf', type: 'pdf', time: 'Today • 10:34 AM', size: '620KB' },
-            { id: 'rf2', name: 'Resume_Updated.doc', type: 'doc', time: 'Yesterday • 6:02 PM', size: '89KB' },
-            { id: 'rf3', name: 'Expenses_2026.xlsx', type: 'xls', time: 'Mar 29 • 1:16 PM', size: '450KB' },
-            { id: 'rf4', name: 'Screenshots.zip.pdf', type: 'pdf', time: 'Mar 28 • 9:41 AM', size: '2.1MB' }
-          ].map((f) => (
-            <div key={f.id} className="pc-home-file-row">
+          {files.slice(0, 12).map((f) => (
+            <div
+              key={f.id}
+              className="pc-home-file-row"
+              onClick={() => onOpenFile({ name: f.name, type: f.type })}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onOpenFile({ name: f.name, type: f.type });
+                }
+              }}
+            >
               <div className="pc-home-file-thumb">
                 <div className={`pc-file-type ${f.type}`}>{f.type.toUpperCase()}</div>
               </div>
@@ -399,8 +531,22 @@ const RecentView = () => {
                 </div>
               </div>
               <div className="pc-home-file-right">
-                <span className="pc-star">★</span>
-                <span className="pc-more">⋯</span>
+                {isFavorited(f.name) ? (
+                  <span className="pc-star" aria-label="Favorited">
+                    <Star size={16} fill="currentColor" stroke="currentColor" />
+                  </span>
+                ) : null}
+                <button
+                  type="button"
+                  className="pc-more-btn pc-more-btn--inline"
+                  aria-label="More actions"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onMore(f.name);
+                  }}
+                >
+                  <MoreHorizontal size={18} />
+                </button>
               </div>
             </div>
           ))}
@@ -410,8 +556,15 @@ const RecentView = () => {
   );
 };
 
-const ToolsView = ({ onSettings }: { onSettings: () => void }) => {
+const ToolsView = ({
+  onSettings,
+  onPickPdf
+}: {
+  onSettings: () => void;
+  onPickPdf: () => void;
+}) => {
   const tools = [
+    { id: 'pdf', title: 'Convert PDF', icon: <FileText size={20} /> },
     { id: 't1', title: 'Image to PDF', icon: <ImageIcon size={20} /> },
     { id: 't2', title: 'Word to PDF', icon: <FileText size={20} /> },
     { id: 't3', title: 'Excel to PDF', icon: <FileSpreadsheet size={20} /> },
@@ -420,15 +573,26 @@ const ToolsView = ({ onSettings }: { onSettings: () => void }) => {
 
   return (
     <div className="pc-page">
-      <div className="pc-top pc-top-compact pc-top-actions">
+      <div className="pc-top pc-top-compact pc-top-actions pc-px">
         <div className="pc-title">Tools</div>
         <button type="button" className="pc-icon-btn" aria-label="Settings" onClick={onSettings}>
           <Settings size={20} />
         </button>
       </div>
-      <div className="pc-tools-list">
+      <div className="pc-tools-list pc-px">
         {tools.map((t) => (
-          <button key={t.id} type="button" className="pc-tool-row">
+          <button
+            key={t.id}
+            type="button"
+            className="pc-tool-row"
+            onClick={() => {
+              if (t.id === 'pdf') {
+                onPickPdf();
+                return;
+              }
+              console.log('Tool', t.id);
+            }}
+          >
             <div className="pc-tool-row-ico">{t.icon}</div>
             <div className="pc-tool-row-name">{t.title}</div>
           </button>
@@ -544,13 +708,13 @@ const LanguagePage = ({
   onBack,
   onChange
 }: {
-  value: 'English' | '简体中文';
+  value: 'English' | 'Simplified Chinese';
   onBack: () => void;
-  onChange: (v: 'English' | '简体中文') => void;
+  onChange: (v: 'English' | 'Simplified Chinese') => void;
 }) => {
-  const options: Array<{ key: 'English' | '简体中文'; label: string; sub: string }> = [
+  const options: Array<{ key: 'English' | 'Simplified Chinese'; label: string; sub: string }> = [
     { key: 'English', label: 'English', sub: 'United States' },
-    { key: '简体中文', label: '简体中文', sub: '中国大陆' }
+    { key: 'Simplified Chinese', label: 'Simplified Chinese', sub: 'Mainland China' }
   ];
 
   return (
@@ -687,6 +851,330 @@ const FeedbackPage = ({ onBack }: { onBack: () => void }) => {
   );
 };
 
+const PreviewPage = ({
+  file,
+  onBack,
+  onOpenShare,
+  onDelete
+}: {
+  file: PreviewFile;
+  onBack: () => void;
+  onOpenShare: () => void;
+  onDelete: () => void;
+}) => {
+  type ConvertFormat = 'Word' | 'Excel' | 'TXT' | 'Image';
+
+  const modeState = useState<'annotate' | 'pages'>('annotate');
+  const mode = modeState[0];
+  const setMode = modeState[1];
+
+  const showToolMenuState = useState(false);
+  const showToolMenu = showToolMenuState[0];
+  const setShowToolMenu = showToolMenuState[1];
+
+  const processingState = useState<string | null>(null);
+  const processing = processingState[0];
+  const setProcessing = processingState[1];
+
+  const selectedPagesState = useState<number[]>([]);
+  const selectedPages = selectedPagesState[0];
+  const setSelectedPages = selectedPagesState[1];
+
+  const confirmState = useState<null | { format: ConvertFormat }>(null);
+  const confirm = confirmState[0];
+  const setConfirm = confirmState[1];
+
+  const countdownState = useState(0);
+  const countdown = countdownState[0];
+  const setCountdown = countdownState[1];
+
+  const confirmCommittedRef = useRef(false);
+  const confirmTimersRef = useRef<{ intervalId: number | null; timeoutId: number | null }>({
+    intervalId: null,
+    timeoutId: null
+  });
+
+  const toastState = useState<string | null>(null);
+  const toast = toastState[0];
+  const setToast = toastState[1];
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = window.setTimeout(() => setToast(null), 1600);
+    return () => window.clearTimeout(t);
+  }, [toast]);
+
+  const runConvert = (label: string) => {
+    setShowToolMenu(false);
+    setProcessing(label);
+    window.setTimeout(() => {
+      setProcessing(null);
+      setToast(`${label} completed`);
+    }, 1200);
+  };
+
+  const clearConfirmTimers = useCallback(() => {
+    const { intervalId, timeoutId } = confirmTimersRef.current;
+    if (intervalId != null) window.clearInterval(intervalId);
+    if (timeoutId != null) window.clearTimeout(timeoutId);
+    confirmTimersRef.current.intervalId = null;
+    confirmTimersRef.current.timeoutId = null;
+  }, []);
+
+  const closeConfirm = useCallback(() => {
+    clearConfirmTimers();
+    confirmCommittedRef.current = false;
+    setConfirm(null);
+    setCountdown(0);
+  }, [clearConfirmTimers]);
+
+  const toolItems = useMemo(() => {
+    return [
+      {
+        id: 'word',
+        label: 'Convert to Word',
+        iconBg: '#2F6BFF',
+        icon: <FileText size={18} color="#fff" />,
+        onPress: () => setConfirm({ format: 'Word' })
+      },
+      {
+        id: 'image',
+        label: 'Convert to Image',
+        iconBg: '#0A84FF',
+        icon: <ImageIcon size={18} color="#fff" />,
+        onPress: () => setConfirm({ format: 'Image' })
+      },
+      {
+        id: 'excel',
+        label: 'Convert to Excel',
+        iconBg: '#22C55E',
+        icon: <FileSpreadsheet size={18} color="#fff" />,
+        onPress: () => setConfirm({ format: 'Excel' })
+      },
+      {
+        id: 'txt',
+        label: 'Convert to TXT',
+        iconBg: '#8E8E93',
+        icon: <Text size={18} color="#fff" />,
+        onPress: () => setConfirm({ format: 'TXT' })
+      },
+    ];
+  }, []);
+
+  const pages = useMemo(() => Array.from({ length: 8 }, (_, i) => i + 1), []);
+
+  const togglePage = (pageNo: number) => {
+    setSelectedPages((prev) => (prev.includes(pageNo) ? prev.filter((p) => p !== pageNo) : prev.concat([pageNo])));
+  };
+
+  const confirmTitle = confirm
+    ? `Are you sure you want to convert this PDF to ${confirm.format === 'Excel' || confirm.format === 'Image' ? 'an' : 'a'} ${confirm.format} file?`
+    : '';
+
+  const doConfirmConvert = (format: ConvertFormat) => {
+    if (confirmCommittedRef.current) return;
+    confirmCommittedRef.current = true;
+    clearConfirmTimers();
+
+    const labelMap: Record<ConvertFormat, string> = {
+      Word: 'Convert to Word',
+      Excel: 'Convert to Excel',
+      TXT: 'Convert to TXT',
+      Image: 'Convert to Image'
+    };
+    const label = labelMap[format];
+    setConfirm(null);
+    setCountdown(0);
+    runConvert(label);
+  };
+
+  useEffect(() => {
+    if (!confirm) return;
+    confirmCommittedRef.current = false;
+    clearConfirmTimers();
+
+    const format = confirm.format;
+    setCountdown(3);
+
+    const intervalId = window.setInterval(() => {
+      setCountdown((v) => Math.max(0, v - 1));
+    }, 1000);
+
+    const timeoutId = window.setTimeout(() => {
+      doConfirmConvert(format);
+    }, 3000);
+
+    confirmTimersRef.current.intervalId = intervalId;
+    confirmTimersRef.current.timeoutId = timeoutId;
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.clearTimeout(timeoutId);
+    };
+  }, [confirm]);
+
+  return (
+    <div className="pc-preview">
+      <div className="pc-preview-top">
+        <button type="button" className="pc-preview-btn" onClick={onBack} aria-label="Back">
+          <ChevronLeft size={20} />
+        </button>
+        <div className="pc-preview-title">Annotation</div>
+        <div className="pc-preview-actions">
+          <button
+            type="button"
+            className="pc-preview-btn"
+            onClick={() => {
+              setShowToolMenu(!showToolMenu);
+            }}
+            aria-label="More"
+          >
+            <MoreHorizontal size={20} />
+          </button>
+        </div>
+      </div>
+
+      {mode === 'annotate' ? (
+      <div className="pc-preview-toolbar">
+        <button type="button" className="pc-toolbtn active" aria-label="Pen">
+          <Pen size={18} />
+        </button>
+        <button type="button" className="pc-toolbtn" aria-label="Highlighter">
+          <Highlighter size={18} />
+        </button>
+        <button type="button" className="pc-toolbtn" aria-label="Eraser">
+          <Eraser size={18} />
+        </button>
+        <button type="button" className="pc-toolbtn" aria-label="Color">
+          <Palette size={18} />
+        </button>
+        <div className="pc-toolbar-spacer" />
+        <button type="button" className="pc-toolbtn" aria-label="Undo">
+          <Undo2 size={18} />
+        </button>
+        <button type="button" className="pc-toolbtn" aria-label="Redo">
+          <Redo2 size={18} />
+        </button>
+      </div>
+      ) : null}
+
+      <div className="pc-preview-body">
+        {mode === 'pages' ? (
+          <div className="pc-pages">
+            <div className="pc-pages-grid">
+              {pages.map((p) => {
+                const checked = selectedPages.includes(p);
+                return (
+                  <button key={p} type="button" className="pc-pagecell" onClick={() => togglePage(p)}>
+                    <div className="pc-pagecell-thumb">
+                      <div className="pc-pagecell-num">{p}</div>
+                    </div>
+                    <div className="pc-pagecell-check">
+                      {checked ? <CheckSquare size={18} className="pc-check-on" /> : <Square size={18} className="pc-check-off" />}
+                      <span>Page {p}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : file.objectUrl ? (
+          <iframe className="pc-preview-iframe" title={file.name} src={file.objectUrl} />
+        ) : (
+          <div className="pc-preview-paper">
+            <div className="pc-preview-cover">
+              <div className="pc-preview-cover-title">Internet Development</div>
+              <div className="pc-preview-cover-title">Research Report</div>
+              <div className="pc-preview-cover-sub">FROM DOCUMENT LIBRARY</div>
+              <div className="pc-preview-cover-date">Jan 10</div>
+              <div className="pc-preview-cover-year">2024</div>
+            </div>
+            <div className="pc-preview-side">REPORT</div>
+          </div>
+        )}
+      </div>
+
+      <div className="pc-preview-tabbar">
+        <button type="button" className={`pc-preview-tab ${mode === 'pages' ? 'active' : ''}`} aria-label="Pages" onClick={() => setMode('pages')}>
+          <LayoutGrid size={20} />
+        </button>
+        <button type="button" className={`pc-preview-tab ${mode === 'annotate' ? 'active' : ''}`} aria-label="Annotate" onClick={() => setMode('annotate')}>
+          <Files size={20} />
+        </button>
+        <button type="button" className="pc-preview-tab" aria-label="Edit">
+          <Pen size={20} />
+        </button>
+      </div>
+
+      {showToolMenu ? (
+        <div className="pc-preview-menu-layer" onClick={() => setShowToolMenu(false)}>
+          <div className="pc-preview-menu" onClick={(e) => e.stopPropagation()}>
+            {toolItems.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className="pc-preview-menu-item"
+                onClick={() => {
+                  setShowToolMenu(false);
+                  item.onPress();
+                }}
+              >
+                <span className="pc-preview-menu-ico" style={{ backgroundColor: item.iconBg }}>
+                  {item.icon}
+                </span>
+                <span className="pc-preview-menu-label">{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {confirm ? (
+        <div className="pc-confirm-layer pc-fade-in" onClick={closeConfirm}>
+          <div className="pc-confirm pc-slide-up" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="pc-confirm-close" aria-label="Close" onClick={closeConfirm}>
+              <X size={18} />
+            </button>
+            <div className="pc-confirm-title">Confirm Conversion</div>
+            <div className="pc-confirm-desc">{confirmTitle}</div>
+            <div className="pc-confirm-actions">
+              <button
+                type="button"
+                className="pc-confirm-btn ghost"
+                onClick={closeConfirm}
+              >
+                Undo
+              </button>
+              <button
+                type="button"
+                className="pc-confirm-btn primary"
+                onClick={() => {
+                  if (!confirm) return;
+                  doConfirmConvert(confirm.format);
+                }}
+              >
+                {countdown > 0 ? `Confirm (${countdown}s)` : 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {processing ? (
+        <div className="pc-preview-processing">
+          <div className="pc-preview-processing-card">
+            <Loader2 size={22} className="pc-spin" />
+            <div className="pc-preview-processing-title">{processing}</div>
+            <div className="pc-preview-processing-sub">{file.name}</div>
+          </div>
+        </div>
+      ) : null}
+
+      {toast ? <div className="pc-toast">{toast}</div> : null}
+    </div>
+  );
+};
+
 const Component = () => {
   const tabState = useState<TabKey>('home');
   const activeTab = tabState[0];
@@ -697,7 +1185,7 @@ const Component = () => {
   const setScreenStack = screenStackState[1];
   const currentScreen = screenStack[screenStack.length - 1];
 
-  const languageState = useState<'English' | '简体中文'>('English');
+  const languageState = useState<'English' | 'Simplified Chinese'>('English');
   const language = languageState[0];
   const setLanguage = languageState[1];
 
@@ -713,8 +1201,54 @@ const Component = () => {
   const fileAction = fileActionState[0];
   const setFileAction = fileActionState[1];
 
+  const favoritesState = useState<string[]>([]);
+  const favorites = favoritesState[0];
+  const setFavorites = favoritesState[1];
+
+  const previewFileState = useState<PreviewFile | null>(null);
+  const previewFile = previewFileState[0];
+  const setPreviewFile = previewFileState[1];
+
+  const filePickerRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (previewFile?.objectUrl) {
+        URL.revokeObjectURL(previewFile.objectUrl);
+      }
+    };
+  }, [previewFile]);
+
+  const openPdfPicker = () => {
+    if (!filePickerRef.current) return;
+    filePickerRef.current.value = '';
+    filePickerRef.current.click();
+  };
+
+  const openPreviewFor = (file: { name: string; type: FileItem['type'] }) => {
+    setPreviewFile({ name: file.name, type: file.type });
+    pushScreen('preview');
+  };
+
+  const isFavorited = (fileName: string) => favorites.includes(fileName);
+
+  const toggleFavorite = (fileName: string) => {
+    setFavorites((prev) => (prev.includes(fileName) ? prev.filter((n) => n !== fileName) : prev.concat([fileName])));
+  };
+
   const sheetItems = useMemo(() => {
+    if (!fileAction) return [];
+    const favorited = favorites.includes(fileAction);
     return [
+      {
+        id: 'favorite',
+        label: favorited ? 'Remove Favorite' : 'Add to Favorites',
+        icon: <Star size={20} fill={favorited ? 'currentColor' : 'none'} stroke="currentColor" />,
+        onPress: () => {
+          toggleFavorite(fileAction);
+          setFileAction(null);
+        }
+      },
       {
         id: 'share',
         label: 'Share',
@@ -753,7 +1287,7 @@ const Component = () => {
         }
       }
     ];
-  }, [fileAction]);
+  }, [favorites, fileAction]);
 
   const addItems = useMemo(() => {
     return [
@@ -781,11 +1315,36 @@ const Component = () => {
 
   return (
     <div className="pc-app">
+      <input
+        ref={filePickerRef}
+        className="pc-file-input"
+        type="file"
+        accept="application/pdf"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (!f) return;
+          const objectUrl = URL.createObjectURL(f);
+          setPreviewFile({ name: f.name, type: 'pdf', objectUrl });
+          pushScreen('preview');
+        }}
+      />
       <div className="pc-content">
-        {activeTab === 'home' ? <HomeView onPremium={() => setShowPaywall(true)} /> : null}
-        {activeTab === 'files' ? <FilesView onMore={(name) => setFileAction(name)} /> : null}
-        {activeTab === 'recent' ? <RecentView /> : null}
-        {activeTab === 'tools' ? <ToolsView onSettings={() => pushScreen('settings')} /> : null}
+        {activeTab === 'home' ? (
+          <HomeView
+            onPremium={() => setShowPaywall(true)}
+            onOpenFile={openPreviewFor}
+            onMore={(name) => setFileAction(name)}
+            onPickPdf={openPdfPicker}
+            isFavorited={isFavorited}
+          />
+        ) : null}
+        {activeTab === 'files' ? (
+          <FilesView onMore={(name) => setFileAction(name)} onOpenFile={openPreviewFor} isFavorited={isFavorited} />
+        ) : null}
+        {activeTab === 'recent' ? (
+          <RecentView onOpenFile={openPreviewFor} onMore={(name) => setFileAction(name)} isFavorited={isFavorited} />
+        ) : null}
+        {activeTab === 'tools' ? <ToolsView onSettings={() => pushScreen('settings')} onPickPdf={openPdfPicker} /> : null}
       </div>
 
       <div className="pc-tabbar">
@@ -816,6 +1375,18 @@ const Component = () => {
 
       {currentScreen !== 'tabs' ? (
         <div className="pc-stack-overlay">
+          {currentScreen === 'preview' && previewFile ? (
+            <PreviewPage
+              file={previewFile}
+              onBack={popScreen}
+              onOpenShare={() => setFileAction(previewFile.name)}
+              onDelete={() => {
+                console.log('Delete', previewFile.name);
+                setPreviewFile(null);
+                popScreen();
+              }}
+            />
+          ) : null}
           {currentScreen === 'settings' ? (
             <SettingsPage
               language={language}
