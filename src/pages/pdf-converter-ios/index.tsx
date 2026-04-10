@@ -47,20 +47,20 @@ const FileIcon = ({ type }: { type: FileItem['type'] }) => {
   let bgColor;
   switch (type) {
     case 'pdf':
-      iconComponent = <FileText size={20} color="#fff" />;
-      bgColor = '#FF3B30';
+      iconComponent = <FileText size={18} color="#fff" />;
+      bgColor = '#D4463C';
       break;
     case 'doc':
-      iconComponent = <FileText size={20} color="#fff" />;
-      bgColor = '#2F6BFF';
+      iconComponent = <FileText size={18} color="#fff" />;
+      bgColor = '#2563EB';
       break;
     case 'xls':
-      iconComponent = <FileSpreadsheet size={20} color="#fff" />;
-      bgColor = '#22C55E';
+      iconComponent = <FileSpreadsheet size={18} color="#fff" />;
+      bgColor = '#16A34A';
       break;
     default:
-      iconComponent = <FileText size={20} color="#fff" />;
-      bgColor = '#8E8E93';
+      iconComponent = <FileText size={18} color="#fff" />;
+      bgColor = '#6B7280';
   }
 
   return (
@@ -342,13 +342,13 @@ const HomeView = ({
 
   const { state: refreshState, containerRef, eventHandlers } = usePullRefresh(refreshFiles);
 
-  const tools: ToolItem[] = [
-    { id: 'img', title: 'Image to PDF', color: '#7C5CFF', icon: <ImageIcon size={20} color="#fff" /> },
-    { id: 'word', title: 'Word to PDF', color: '#2F6BFF', icon: <span className="pc-tool-letter">W</span> },
-    { id: 'excel', title: 'Excel to PDF', color: '#22C55E', icon: <span className="pc-tool-letter">E</span> },
-    { id: 'ppt', title: 'PPT to PDF', color: '#FF7A45', icon: <span className="pc-tool-letter">P</span> },
-    { id: 'text', title: 'Text to PDF', color: '#3B82F6', icon: <span className="pc-tool-letter pc-tool-letter--sm">TXT</span> },
-    { id: 'url', title: 'URL to PDF', color: '#FF4D4F', icon: <span className="pc-tool-letter pc-tool-letter--sm">URL</span> }
+const tools: ToolItem[] = [
+  { id: 'img', title: 'Image to PDF', color: '#1A1A1A', icon: <ImageIcon size={18} color="#fff" /> },
+  { id: 'word', title: 'Word to PDF', color: '#2563EB', icon: <span className="pc-tool-letter">W</span> },
+  { id: 'excel', title: 'Excel to PDF', color: '#16A34A', icon: <span className="pc-tool-letter">E</span> },
+  { id: 'ppt', title: 'PPT to PDF', color: '#EA580C', icon: <span className="pc-tool-letter">P</span> },
+  { id: 'text', title: 'Text to PDF', color: '#6B7280', icon: <span className="pc-tool-letter pc-tool-letter--sm">TXT</span> },
+  { id: 'url', title: 'URL to PDF', color: '#D4463C', icon: <span className="pc-tool-letter pc-tool-letter--sm">URL</span> }
   ];
 
   const files = DEMO_FILES;
@@ -760,14 +760,14 @@ const SettingsPage = ({
           <div className="pc-stack-group">
             <SettingsRow
               icon={<Globe size={18} color="#fff" />}
-              iconBg="#2F6BFF"
+              iconBg="#1A1A1A"
               title="Language"
               subtitle={language}
               onPress={() => onOpen('language')}
             />
             <SettingsRow
               icon={<FolderOpen size={18} color="#fff" />}
-              iconBg="#FF7A45"
+              iconBg="#6B7280"
               title="Processing Files"
               subtitle="Queue & history"
               onPress={() => onOpen('processing')}
@@ -779,13 +779,13 @@ const SettingsPage = ({
           <div className="pc-stack-group">
             <SettingsRow
               icon={<ShieldCheck size={18} color="#fff" />}
-              iconBg="#22C55E"
+              iconBg="#16A34A"
               title="Privacy Policy"
               onPress={() => onOpen('privacy')}
             />
             <SettingsRow
               icon={<MessageSquare size={18} color="#fff" />}
-              iconBg="#7C5CFF"
+              iconBg="#1A1A1A"
               title="Feedback"
               subtitle="Contact & suggestions"
               onPress={() => onOpen('feedback')}
@@ -916,7 +916,7 @@ const FeedbackPage = ({ onBack }: { onBack: () => void }) => {
         <div className="pc-stack-section">
           <div className="pc-stack-group">
             <button type="button" className="pc-setting-row" onClick={() => console.log('Open email')}>
-              <span className="pc-setting-ico" style={{ backgroundColor: '#2F6BFF' }}>
+              <span className="pc-setting-ico" style={{ backgroundColor: '#1A1A1A' }}>
                 <MessageSquare size={18} color="#fff" />
               </span>
               <span className="pc-setting-main">
@@ -926,7 +926,7 @@ const FeedbackPage = ({ onBack }: { onBack: () => void }) => {
               <ChevronRight size={18} className="pc-setting-right" />
             </button>
             <button type="button" className="pc-setting-row" onClick={() => console.log('Open FAQ')}>
-              <span className="pc-setting-ico" style={{ backgroundColor: '#22C55E' }}>
+              <span className="pc-setting-ico" style={{ backgroundColor: '#6B7280' }}>
                 <Info size={18} color="#fff" />
               </span>
               <span className="pc-setting-main">
@@ -1027,49 +1027,49 @@ const PreviewPage = ({
       {
         id: 'word',
         label: 'Convert to Word',
-        iconBg: '#2F6BFF',
+        iconBg: '#2563EB',
         icon: <FileText size={18} color="#fff" />,
         onPress: () => setConfirm({ format: 'Word' })
       },
       {
         id: 'image',
         label: 'Convert to Image',
-        iconBg: '#0A84FF',
+        iconBg: '#1A1A1A',
         icon: <ImageIcon size={18} color="#fff" />,
         onPress: () => setConfirm({ format: 'Image' })
       },
       {
         id: 'excel',
         label: 'Convert to Excel',
-        iconBg: '#22C55E',
+        iconBg: '#16A34A',
         icon: <FileSpreadsheet size={18} color="#fff" />,
         onPress: () => setConfirm({ format: 'Excel' })
       },
       {
         id: 'ppt',
         label: 'Convert to PPT',
-        iconBg: '#FF7A45',
+        iconBg: '#EA580C',
         icon: <Presentation size={18} color="#fff" />,
         onPress: () => setConfirm({ format: 'PPT' })
       },
       {
         id: 'txt',
         label: 'Convert to TXT',
-        iconBg: '#8E8E93',
+        iconBg: '#6B7280',
         icon: <Text size={18} color="#fff" />,
         onPress: () => setConfirm({ format: 'TXT' })
       },
       {
         id: 'share',
         label: 'Share',
-        iconBg: '#007AFF',
+        iconBg: '#1A1A1A',
         icon: <Share size={18} color="#fff" />,
         onPress: onOpenShare
       },
       {
         id: 'delete',
         label: 'Delete',
-        iconBg: '#FF3B30',
+        iconBg: '#D4463C',
         icon: <Trash2 size={18} color="#fff" />,
         onPress: onDelete,
         destructive: true
@@ -1166,7 +1166,7 @@ const PreviewPage = ({
         </button>
         <div className="pc-toolbar-spacer" />
         <button type="button" className="pc-toolbtn" aria-label="Color">
-          <div style={{ width: 20, height: 20, borderRadius: 10, background: '#FF3B30', border: '2px solid #fff', boxShadow: '0 0 0 1px rgba(0,0,0,0.1)' }} />
+          <div style={{ width: 20, height: 20, borderRadius: 10, background: '#1A1A1A', border: '2px solid #fff', boxShadow: '0 0 0 1px rgba(0,0,0,0.08)' }} />
         </button>
         <div className="pc-toolbar-spacer" />
         <button type="button" className="pc-toolbtn" aria-label="Undo">
@@ -1190,10 +1190,10 @@ const PreviewPage = ({
                 const checked = selectedPages.includes(p);
                 return (
                   <button key={p} type="button" className="pc-pagecell" onClick={() => togglePage(p)}>
-                    <div className={`pc-pagecell-thumb ${checked ? 'active' : ''}`} style={checked ? { borderColor: '#FF3B30', borderWidth: '2px', boxShadow: '0 0 0 2px rgba(255, 59, 48, 0.2)' } : {}}>
+                    <div className={`pc-pagecell-thumb ${checked ? 'active' : ''}`} style={checked ? { borderColor: '#1A1A1A', borderWidth: '2px', boxShadow: '0 0 0 2px rgba(26, 26, 26, 0.1)' } : {}}>
                       <div className="pc-pagecell-num">{p}</div>
                       {checked && (
-                        <div style={{ position: 'absolute', top: 4, right: 4, background: '#FF3B30', borderRadius: 10, width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ position: 'absolute', top: 4, right: 4, background: '#1A1A1A', borderRadius: 10, width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <Check size={12} color="#fff" strokeWidth={3} />
                         </div>
                       )}
